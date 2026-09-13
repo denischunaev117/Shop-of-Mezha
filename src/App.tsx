@@ -3,34 +3,51 @@ import { ArrowDown, ArrowRight, Check, Minus, Plus, Menu, Music2, Send, X } from
 import { supabase } from '@/lib/supabase';
 import { legalInfo } from '@/config/legal';
 
-const products = [
-  { name: 'СВОБОДНЫЙ ХОД', type: '195г/м²', price: 69, tone: 'black', mark: '01', image: '/images/tshirts/tshirt-01.png', category: 'tshirts' },
-  { name: 'ТВОЕ НАПРАВЛЕНИЕ', type: '195г/м²', price: 69, tone: 'bone', mark: '02', image: '/images/tshirts/tshirt-02.png', category: 'tshirts' },
-  { name: 'МЕСТО СИЛЫ', type: '195г/м²', price: 69, tone: 'slate', mark: '03', image: '/images/tshirts/tshirt-03.png', category: 'tshirts' },
-  { name: 'ЦИФРОВОЙ СЛЕД', type: '195г/м²', price: 69, tone: 'sand', mark: '04', image: '/images/tshirts/tshirt-04.png', category: 'tshirts' },
-  { name: 'СИЛУЭТ', type: '195г/м²', price: 69, tone: 'red', mark: '05', image: '/images/tshirts/tshirt-05.png', category: 'tshirts' },
-  { name: 'ШИФР', type: '195г/м²', price: 69, tone: 'green', mark: '06', image: '/images/tshirts/tshirt-06.png', category: 'tshirts' },
-  { name: 'КОНТЕКСТ', type: '195г/м²', price: 69, tone: 'rust', mark: '07', image: '/images/tshirts/tshirt-07.png', category: 'tshirts' },
-  { name: 'КООРДИНАТА', type: '195г/м²', price: 69, tone: 'teal', mark: '08', image: '/images/tshirts/tshirt-08.png', category: 'tshirts' },
-  { name: 'ПОЛЕТ', type: '195г/м²', price: 69, tone: 'bone', mark: '09', image: '/images/tshirts/tshirt-09.png', category: 'tshirts' },
-  { name: 'ИСТОКИ', type: '195г/м²', price: 69, tone: 'bone', mark: '10', image: '/images/tshirts/tshirt-10.png', category: 'tshirts' },
-  { name: 'КАРТА', type: '195г/м²', price: 69, tone: 'bone', mark: '11', image: '/images/tshirts/tshirt-11.png', category: 'tshirts' },
-  { name: 'СВЯЗЬ', type: '195г/м²', price: 69, tone: 'bone', mark: '12', image: '/images/tshirts/tshirt-12.png', category: 'tshirts' },
-  { name: 'НЕБО', type: '195г/м²', price: 69, tone: 'bone', mark: '13', image: '/images/tshirts/tshirt-13.png', category: 'tshirts' },
-  { name: 'ДОМ', type: '195г/м²', price: 69, tone: 'bone', mark: '14', image: '/images/tshirts/tshirt-14.png', category: 'tshirts' },
-  { name: 'ЗЕМЛЯ', type: '195г/м²', price: 69, tone: 'bone', mark: '15', image: '/images/tshirts/tshirt-15.png', category: 'tshirts' },
-  { name: 'КОД', type: '195г/м²', price: 69, tone: 'bone', mark: '16', image: '/images/tshirts/tshirt-16.png', category: 'tshirts' },
-] as const;
+type Collection = 'ЖЫВЕЛЫ' | 'ПРЫРОДА' | 'АРХІТЭКТУРА';
+
+const tshirtNames: string[] = [
+  'ЗУБР', 'МЯДЗВЕДЗЬ', 'ЛОСЬ', 'АЛЕНЬ', 'ВОЎК', 'РЫСЬ', 'ЛІСА', 'БОРСУК',
+  'БЕЛЫ БУСЕЛ', 'ЧОРНЫ БУСЕЛ', 'АРОЛ', 'САВА', 'ГЛУШЭЦ', 'ЗІМАРОДАК',
+  'ВЕРАЦЕННІК', 'ЛАСТАЎКА',
+  'ПАРТРЭТ ЗУБРА', 'ПАРТРЭТ МЯДЗВЕДЗЯ', 'ПАРТРЭТ ЛОСЯ', 'ПАРТРЭТ АЛЕНЯ',
+  'ПАРТРЭТ ВАЎКА', 'ПАРТРЭТ РЫСІ', 'ПАРТРЭТ ЛІСЫ', 'ПАРТРЭТ БОРСУКА',
+  'ПАРТРЭТ БЕЛАГА БУСЛА', 'ПАРТРЭТ ЧОРНАГА БУСЛА', 'ПАРТРЭТ АРЛА',
+  'ПАРТРЭТ САВЫ', 'ПАРТРЭТ ГЛУШЦА', 'ПАРТРЭТ ЗІМАРОДКА',
+  'ПАРТРЭТ ВЕРАЦЕННІКА', 'ПАРТРЭТ ЛАСТАЎКІ',
+];
+
+const tshirtCollections: Record<number, Collection> = {};
+tshirtNames.forEach((_, i) => {
+  if (i < 16) tshirtCollections[i + 1] = 'ЖЫВЕЛЫ';
+  else tshirtCollections[i + 1] = 'ПРЫРОДА';
+});
+
+const products = tshirtNames.map((name, i) => {
+  const num = i + 1;
+  const mark = String(num).padStart(2, '0');
+  const collection = tshirtCollections[num];
+  const folder = collection === 'ЖЫВЕЛЫ' ? 'animal' : collection === 'ПРЫРОДА' ? 'nature' : 'architecture';
+  return {
+    name,
+    type: '195г/м²',
+    price: 54,
+    tone: 'bone',
+    mark,
+    image: `/images/tshirts/${folder}/tshirt-${mark}.png`,
+    category: 'tshirts' as const,
+    collection,
+  };
+});
 
 const hoodies = [
-  { name: 'СВОБОДНЫЙ ХОД', type: 'хлопок', price: 119, tone: 'bone', mark: '01', image: '/images/hoodie/hoodie-01.png', category: 'hoodies' },
-  { name: 'ТВОЕ НАПРАВЛЕНИЕ', type: 'хлопок', price: 119, tone: 'bone', mark: '02', image: '/images/hoodie/hoodie-02.png', category: 'hoodies' },
-  { name: 'МЕСТО СИЛЫ', type: 'хлопок', price: 119, tone: 'bone', mark: '03', image: '/images/hoodie/hoodie-03.png', category: 'hoodies' },
-  { name: 'ЦИФРОВОЙ СЛЕД', type: 'хлопок', price: 119, tone: 'bone', mark: '04', image: '/images/hoodie/hoodie-04.png', category: 'hoodies' },
-] as const;
+  { name: 'СВОБОДНЫЙ ХОД', type: 'хлопок', price: 119, tone: 'bone', mark: '01', image: '/images/hoodie/hoodie-01.png', category: 'hoodies' as const },
+  { name: 'ТВОЕ НАПРАВЛЕНИЕ', type: 'хлопок', price: 119, tone: 'bone', mark: '02', image: '/images/hoodie/hoodie-02.png', category: 'hoodies' as const },
+  { name: 'МЕСТО СИЛЫ', type: 'хлопок', price: 119, tone: 'bone', mark: '03', image: '/images/hoodie/hoodie-03.png', category: 'hoodies' as const },
+  { name: 'ЦИФРОВОЙ СЛЕД', type: 'хлопок', price: 119, tone: 'bone', mark: '04', image: '/images/hoodie/hoodie-04.png', category: 'hoodies' as const },
+];
 
 const sizes = ['S', 'M', 'L'] as const;
-type Product = (typeof products | typeof hoodies)[number];
+type Product = (typeof products)[number] | (typeof hoodies)[number];
 type Size = (typeof sizes)[number];
 type CartItem = { id: string; product: Product; size: Size; quantity: number };
 
@@ -68,7 +85,15 @@ function App() {
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
   const [addedProduct, setAddedProduct] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'tshirts' | 'hoodies'>('tshirts');
-  const activeProducts = activeTab === 'tshirts' ? products : hoodies;
+  const [activeCollection, setActiveCollection] = useState<Collection>('ЖЫВЕЛЫ');
+
+  const collections: Collection[] = ['ЖЫВЕЛЫ', 'ПРЫРОДА', 'АРХІТЭКТУРА'];
+
+  const activeProducts = activeTab === 'tshirts'
+    ? products.filter((p) => p.collection === activeCollection)
+    : hoodies;
+
+  const tshirtCount = products.length;
   const sizeGuideImage = activeTab === 'tshirts' ? '/images/tshirts/tshirt-size-chart.png' : '/images/hoodie/hoodies-size-table.png';
   const sizeHints = activeTab === 'tshirts' ? ['44–46', '48', '50'] : ['46', '48', '50'];
 
@@ -200,6 +225,8 @@ function App() {
     setIsSending(false);
   };
 
+  const productTotalLabel = activeTab === 'tshirts' ? tshirtCount : hoodies.length;
+
   return (
     <main>
       <nav className="nav container">
@@ -238,17 +265,24 @@ function App() {
       </section>
 
       <section className="catalog container" id="catalog">
-        <div className="section-heading"><div className="section-label"><span>02</span><span>Каталог / 16</span></div><h2>Вещи<br /><em>с характером.</em></h2><p>Базовая форма. Нестандартная мысль.</p></div>
+        <div className="section-heading"><div className="section-label"><span>02</span><span>Каталог / {productTotalLabel}</span></div><h2>Вещи<br /><em>с характером.</em></h2><p>Базовая форма. Нестандартная мысль.</p></div>
         <div className="catalog-tabs">
           <button className={activeTab === 'tshirts' ? 'active' : ''} onClick={() => setActiveTab('tshirts')}>ФУТБОЛКИ</button>
           <button className={activeTab === 'hoodies' ? 'active' : ''} onClick={() => setActiveTab('hoodies')}>ТОЛСТОВКИ</button>
         </div>
+        {activeTab === 'tshirts' && (
+          <div className="collection-tabs">
+            {collections.map((col) => (
+              <button key={col} className={activeCollection === col ? 'active' : ''} onClick={() => setActiveCollection(col)}>{col}</button>
+            ))}
+          </div>
+        )}
         <div className="product-grid">
           {activeProducts.map((product) => {
             return <article className="product-card" key={`${product.category}-${product.name}`}>
               <div className="product-image" onClick={() => setExpandedProduct(product)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedProduct(product); } }} role="button" tabIndex={0} aria-label={`Рассмотреть ${activeTab === 'tshirts' ? 'майку' : 'толстовку'} ${product.name}`}>
                 <img className="product-photo" src={product.image} alt={`${activeTab === 'tshirts' ? 'Майка' : 'Толстовка'} ${product.name}`} />
-                <span className="product-number">{product.mark} / {activeTab === 'tshirts' ? '16' : '04'}</span><span className="product-stamp">МЕЖА<br />MADE IN BY</span><span className="zoom-hint">нажми, чтобы рассмотреть</span>
+                <span className="product-number">{product.mark} / {activeTab === 'tshirts' ? tshirtCount : '04'}</span><span className="product-stamp">МЕЖА<br />MADE IN BY</span><span className="zoom-hint">нажми, чтобы рассмотреть</span>
               </div>
               <div className="product-info"><div><h3>{product.name}</h3><p>{product.type}</p></div><strong>{formatPrice(product.price)}</strong></div>
               <button className="product-choose" onClick={() => setParamsProduct(product)}>Выбрать параметры <ArrowRight size={16} /></button>
@@ -261,7 +295,7 @@ function App() {
 
       <section className="size-guide container" id="sizes">
         <div className="size-guide-heading"><div className="section-label"><span>03</span><span>Размеры · {activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}</span></div><h2>Найди<br /><em>свой размер.</em></h2><p>Сними мерки по любимой вещи и сравни с таблицей. Для оверсайз-посадки выбирай размер по ширине изделия под проймой.</p></div>
-        <div className="size-guide-card"><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА`} onClick={() => setSizeGuideOpen(true)} /><div className="size-guide-note"><span>РАЗМЕРЫ</span><strong>S — {sizeHints[0]}<br />M — {sizeHints[1]} · L — {sizeHints[2]}</strong><p>Измеряй вещь на ровной поверхности.</p></div></div>
+        <div className="size-guide-card"><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА`} onClick={() => setSizeGuideOpen(true)} /><div className="size-guide-note"><span>РАЗМЕРЫ</span><strong>S — {sizeHints[0]}<br />M — {sizeHints[1]}<br />L — {sizeHints[2]}</strong><p>Измеряй вещь на ровной поверхности.</p></div></div>
       </section>
 
       <section className="manifesto container"><div className="manifesto-line" /><p>НЕ ИЩИ<br /><span>СВОЁ МЕСТО.</span><br />СОЗДАЙ ЕГО.</p><span className="manifesto-mark">М / 2026</span></section>
@@ -285,7 +319,7 @@ function App() {
       </section>
 
       {sizeGuideOpen && <div className="image-modal" role="dialog" aria-modal="true" aria-label="Просмотр таблицы размеров" onClick={() => setSizeGuideOpen(false)}><button className="image-modal-close" onClick={() => setSizeGuideOpen(false)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА — увеличенный просмотр`} /><div><strong>Таблица размеров · {activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}</strong></div></div></div>}
-      {expandedProduct && <div className={`image-modal ${paramsProduct ? 'product-preview-modal' : ''}`} role="dialog" aria-modal="true" aria-label={`Просмотр майки ${expandedProduct.name}`} onClick={() => setExpandedProduct(null)}><button className="image-modal-close" onClick={() => setExpandedProduct(null)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={expandedProduct.image} alt={`Майка ${expandedProduct.name} — увеличенный просмотр`} /><div><span>{expandedProduct.mark} / {expandedProduct.category === 'tshirts' ? '16' : '04'}</span><strong>{expandedProduct.name}</strong></div></div></div>}
+      {expandedProduct && <div className={`image-modal ${paramsProduct ? 'product-preview-modal' : ''}`} role="dialog" aria-modal="true" aria-label={`Просмотр майки ${expandedProduct.name}`} onClick={() => setExpandedProduct(null)}><button className="image-modal-close" onClick={() => setExpandedProduct(null)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={expandedProduct.image} alt={`Майка ${expandedProduct.name} — увеличенный просмотр`} /><div><span>{expandedProduct.mark} / {expandedProduct.category === 'tshirts' ? tshirtCount : '04'}</span><strong>{expandedProduct.name}</strong></div></div></div>}
       {paramsProduct && (
         <div className="image-modal params-modal" role="dialog" aria-modal="true" aria-label={`Выбор параметров: ${paramsProduct.name}`} onClick={() => setParamsProduct(null)}>
           <div className="params-modal-content" onClick={(event) => event.stopPropagation()}>
@@ -295,7 +329,7 @@ function App() {
             </div>
             <div className="params-modal-side">
               <div className="params-modal-info">
-                <span className="params-modal-mark">{paramsProduct.mark} / {paramsProduct.category === 'tshirts' ? '16' : '04'}</span>
+                <span className="params-modal-mark">{paramsProduct.mark} / {paramsProduct.category === 'tshirts' ? tshirtCount : '04'}</span>
                 <h3>{paramsProduct.name}</h3>
                 <p>{paramsProduct.type}</p>
                 <strong>{formatPrice(paramsProduct.price)}</strong>
@@ -328,9 +362,13 @@ function App() {
       <footer className="footer container">
         <div className="footer-top">
           <div className="footer-brand">
-            <a className="wordmark" href="#top">МЕЖА</a>
-            <p>ОДЕЖДА ТВОЕГО КРАЯ.</p>
-            <div className="footer-links"><a href="https://t.me/moi_angel" aria-label="Telegram"><Send size={17} /></a><a href="https://www.tiktok.com/@shop.mezha" aria-label="TikTok"><Music2 size={17} /></a></div>
+            <div className="footer-brand-row">
+              <div className="footer-brand-text">
+                <a className="wordmark" href="#top">МЕЖА</a>
+                <p>ОДЕЖДА ТВОЕГО КРАЯ.</p>
+              </div>
+              <div className="footer-links"><a href="https://t.me/moi_angel" aria-label="Telegram"><Send size={17} /></a><a href="https://www.tiktok.com/@shop.mezha" aria-label="TikTok"><Music2 size={17} /></a></div>
+            </div>
           </div>
           <div className="footer-contacts">
             <h4>КОНТАКТЫ</h4>
@@ -342,7 +380,8 @@ function App() {
         <div className="legal-details">
           <p>{legalInfo.entrepreneur}, {legalInfo.country}, {legalInfo.city}, {legalInfo.address}, {legalInfo.phone}</p>
           <p>УНП {legalInfo.unp} от {legalInfo.unpDate} выдано {legalInfo.unpIssuedBy}, тел. Климовичский РИК: {legalInfo.rikPhone}</p>
-          <p>Интернет-магазин зарегистрирован в Торговом реестре Республики Беларусь: № {legalInfo.tradeRegisterNumber} от {legalInfo.tradeRegisterDate}. Адрес для почтовых отправлений: {legalInfo.postalAddress}. Режим работы: {legalInfo.workingHours}.</p>
+          <p>Интернет-магазин зарегистрирован в Торговом реестре Республики Беларусь: № {legalInfo.tradeRegisterNumber} от {legalInfo.tradeRegisterDate}. Адрес для почтовых отправлений: {legalInfo.postalAddress}.</p>
+          <p>Режим работы: {legalInfo.workingHours}.</p>
         </div>
       </footer>
     </main>
