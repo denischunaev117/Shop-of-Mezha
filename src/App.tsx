@@ -325,7 +325,26 @@ function App() {
         </div>
       )}
       {addedProduct && <div className="toast-notification"><Check size={16} /> <span>{addedProduct} добавлено в корзину</span></div>}
-      <footer className="footer container"><a className="wordmark" href="#top">МЕЖА</a><p>ОДЕЖДА ТВОЕГО КРАЯ.</p><div className="footer-links"><a href="https://t.me/moi_angel" aria-label="Telegram"><Send size={17} /></a><a href="https://www.tiktok.com/@shop.mezha" aria-label="TikTok"><Music2 size={17} /></a></div><span>© 2026 МЕЖА</span><div className="legal-details"><p>{legalInfo.entrepreneur}, {legalInfo.country}, {legalInfo.city}, {legalInfo.address}, {legalInfo.phone}</p><p>УНП {legalInfo.unp} от {legalInfo.unpDate} выдано {legalInfo.unpIssuedBy}, тел. Климовичский РИК: {legalInfo.rikPhone}</p><p>Интернет-магазин зарегистрирован в Торговом реестре Республики Беларусь: № {legalInfo.tradeRegisterNumber} от {legalInfo.tradeRegisterDate}. Адрес для почтовых отправлений: {legalInfo.postalAddress}. Режим работы: {legalInfo.workingHours}.</p></div></footer>
+      <footer className="footer container">
+        <div className="footer-top">
+          <div className="footer-brand">
+            <a className="wordmark" href="#top">МЕЖА</a>
+            <p>ОДЕЖДА ТВОЕГО КРАЯ.</p>
+            <div className="footer-links"><a href="https://t.me/moi_angel" aria-label="Telegram"><Send size={17} /></a><a href="https://www.tiktok.com/@shop.mezha" aria-label="TikTok"><Music2 size={17} /></a></div>
+          </div>
+          <div className="footer-contacts">
+            <h4>КОНТАКТЫ</h4>
+            <a href={`mailto:${legalInfo.email}`}>Почта: {legalInfo.email}</a>
+            <a href="tel:+375298406458">Телефон: {legalInfo.phone}</a>
+          </div>
+        </div>
+        <span className="footer-copy">© 2026 МЕЖА</span>
+        <div className="legal-details">
+          <p>{legalInfo.entrepreneur}, {legalInfo.country}, {legalInfo.city}, {legalInfo.address}, {legalInfo.phone}</p>
+          <p>УНП {legalInfo.unp} от {legalInfo.unpDate} выдано {legalInfo.unpIssuedBy}, тел. Климовичский РИК: {legalInfo.rikPhone}</p>
+          <p>Интернет-магазин зарегистрирован в Торговом реестре Республики Беларусь: № {legalInfo.tradeRegisterNumber} от {legalInfo.tradeRegisterDate}. Адрес для почтовых отправлений: {legalInfo.postalAddress}. Режим работы: {legalInfo.workingHours}.</p>
+        </div>
+      </footer>
     </main>
   );
 }

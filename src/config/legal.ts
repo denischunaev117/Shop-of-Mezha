@@ -4,6 +4,7 @@ export const legalInfo = {
   city: 'г. Климовичи',
   address: 'пер. Революционный 21-56',
   phone: '+375 (29) 840-64-58',
+  email: 'info@межа.бел',
   unp: '791406610',
   unpDate: '26.08.2026 г.',
   unpIssuedBy: 'Климовичским РИК',
