@@ -3,12 +3,15 @@ import { ArrowDown, ArrowRight, Check, Minus, Plus, Menu, Music2, Send, X } from
 import { supabase } from '@/lib/supabase';
 import { legalInfo } from '@/config/legal';
 
-type Collection = 'ЖЫВЕЛЫ' | 'ПРЫРОДА' | 'АРХІТЭКТУРА';
+type Collection = 'ЖЫВЕЛЫ' | 'ПТУШКІ' | 'ПРЫРОДА' | 'АРХІТЭКТУРА';
 
-const tshirtNames: string[] = [
+const mammalNames: string[] = [
   'ЗУБР', 'МЯДЗВЕДЗЬ', 'ЛОСЬ', 'АЛЕНЬ', 'ВОЎК', 'РЫСЬ', 'ЛІСА', 'БОРСУК',
   'БЕЛЫ БУСЕЛ', 'ЧОРНЫ БУСЕЛ', 'АРОЛ', 'САВА', 'ГЛУШЭЦ', 'ЗІМАРОДАК',
   'ВЕРАЦЕННІК', 'ЛАСТАЎКА',
+];
+
+const birdNames: string[] = [
   'ПАРТРЭТ ЗУБРА', 'ПАРТРЭТ МЯДЗВЕДЗЯ', 'ПАРТРЭТ ЛОСЯ', 'ПАРТРЭТ АЛЕНЯ',
   'ПАРТРЭТ ВАЎКА', 'ПАРТРЭТ РЫСІ', 'ПАРТРЭТ ЛІСЫ', 'ПАРТРЭТ БОРСУКА',
   'ПАРТРЭТ БЕЛАГА БУСЛА', 'ПАРТРЭТ ЧОРНАГА БУСЛА', 'ПАРТРЭТ АРЛА',
@@ -16,21 +19,26 @@ const tshirtNames: string[] = [
   'ПАРТРЭТ ВЕРАЦЕННІКА', 'ПАРТРЭТ ЛАСТАЎКІ',
 ];
 
-const products = tshirtNames.map((name, i) => {
-  const num = i + 1;
-  const mark = String(num).padStart(2, '0');
-  return {
-    name,
-    type: '190г/м²',
-    material: '100% полугребенной хлопок Ringspun',
-    price: 54,
-    tone: 'bone',
-    mark,
-    image: `/images/tshirts/animal/tshirt-${mark}.png`,
-    category: 'tshirts' as const,
-    collection: 'ЖЫВЕЛЫ' as Collection,
-  };
-});
+const createTshirtProducts = (names: string[], collection: Collection, imageDir: string) =>
+  names.map((name, i) => {
+    const mark = String(i + 1).padStart(2, '0');
+    return {
+      name,
+      type: '190г/м²',
+      material: '100% полугребенной хлопок Ringspun',
+      price: 54,
+      tone: 'bone',
+      mark,
+      image: `/images/tshirts/animals/${imageDir}/tshirt-${mark}.png`,
+      category: 'tshirts' as const,
+      collection,
+    };
+  });
+
+const products = [
+  ...createTshirtProducts(mammalNames, 'ЖЫВЕЛЫ', 'mammals'),
+  ...createTshirtProducts(birdNames, 'ПТУШКІ', 'birds'),
+];
 
 const hoodies = [
   { name: 'СВОБОДНЫЙ ХОД', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '01', image: '/images/hoodie/hoodie-01.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
@@ -80,13 +88,15 @@ function App() {
   const [activeTab, setActiveTab] = useState<'tshirts' | 'hoodies'>('tshirts');
   const [activeCollection, setActiveCollection] = useState<Collection>('ЖЫВЕЛЫ');
 
-  const collections: Collection[] = ['ЖЫВЕЛЫ', 'ПРЫРОДА', 'АРХІТЭКТУРА'];
+  const collections: Collection[] = ['ЖЫВЕЛЫ', 'ПТУШКІ', 'ПРЫРОДА', 'АРХІТЭКТУРА'];
 
   const activeProducts = activeTab === 'tshirts'
     ? products.filter((p) => p.collection === activeCollection)
     : hoodies.filter((p) => p.collection === activeCollection);
 
-  const tshirtCount = products.length;
+  const activeCollectionCount = activeTab === 'tshirts'
+    ? products.filter((p) => p.collection === activeCollection).length
+    : hoodies.filter((p) => p.collection === activeCollection).length;
   const sizeGuideImage = activeTab === 'tshirts' ? '/images/tshirts/tshirt-size-chart.png' : '/images/hoodie/hoodies-size-table.png';
   const sizeHints = activeTab === 'tshirts' ? ['44–46', '48', '50'] : ['50', '52–54', '54–56'];
 
@@ -149,6 +159,7 @@ function App() {
       const { error: insertError } = await supabase.from('mezha_orders').insert({
         full_name: form.fullName.trim(),
         phone: form.phone.trim(),
+        email: form.email.trim(),
         telegram,
         size: sizeSummary,
         pickup_point: form.pickupPoint.trim(),
@@ -165,7 +176,7 @@ function App() {
 
     const emailjsConfig = {
       serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || 'service_x3wyi1k',
-      templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+      templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_ydqe5rm',
       publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'D6P-fI_Auhb_jUPjg',
     };
 
@@ -218,7 +229,7 @@ function App() {
     setIsSending(false);
   };
 
-  const productTotalLabel = activeTab === 'tshirts' ? tshirtCount : hoodies.length;
+  const productTotalLabel = activeCollectionCount;
 
   return (
     <main>
@@ -273,13 +284,18 @@ function App() {
             return <article className="product-card" key={`${product.category}-${product.name}`}>
               <div className="product-image" onClick={() => setExpandedProduct(product)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedProduct(product); } }} role="button" tabIndex={0} aria-label={`Рассмотреть ${activeTab === 'tshirts' ? 'майку' : 'толстовку'} ${product.name}`}>
                 <img className="product-photo" src={product.image} alt={`${activeTab === 'tshirts' ? 'Майка' : 'Толстовка'} ${product.name}`} />
-                <span className="product-number">{product.mark} / {activeTab === 'tshirts' ? tshirtCount : '04'}</span><span className="product-stamp">МЕЖА<br />MADE IN BY</span><span className="zoom-hint">нажми, чтобы рассмотреть</span>
+                <span className="product-number">{product.mark} / {String(activeCollectionCount).padStart(2, '0')}</span><span className="product-stamp">МЕЖА<br />MADE IN BY</span><span className="zoom-hint">нажми, чтобы рассмотреть</span>
               </div>
               <div className="product-info"><div><h3>{product.name}</h3><p>{product.type}</p></div><strong>{formatPrice(product.price)}</strong></div>
               <button className="product-choose" onClick={() => setParamsProduct(product)}>Выбрать параметры <ArrowRight size={16} /></button>
             </article>;
           })}
         </div>
+        {activeProducts.length === 0 && (
+          <div className="catalog-empty-tab">
+            <p>Эта коллекция скоро появится.</p>
+          </div>
+        )}
         <p className="catalog-note">* Без учёта доставки (бесплатно при заказе от 2-х вещей).</p>
         <p className="catalog-sizes-note">** Размеры соответствуют стандартным белорусским. Если вы хотите, чтобы вещь сидела свободно (оверсайз), рекомендуем заказывать на один размер больше вашего привычного.</p>
       </section>
@@ -310,7 +326,7 @@ function App() {
       </section>
 
       {sizeGuideOpen && <div className="image-modal" role="dialog" aria-modal="true" aria-label="Просмотр таблицы размеров" onClick={() => setSizeGuideOpen(false)}><button className="image-modal-close" onClick={() => setSizeGuideOpen(false)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА — увеличенный просмотр`} /><div><strong>Таблица размеров · {activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}</strong></div></div></div>}
-      {expandedProduct && <div className={`image-modal ${paramsProduct ? 'product-preview-modal' : ''}`} role="dialog" aria-modal="true" aria-label={`Просмотр майки ${expandedProduct.name}`} onClick={() => setExpandedProduct(null)}><button className="image-modal-close" onClick={() => setExpandedProduct(null)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={expandedProduct.image} alt={`Майка ${expandedProduct.name} — увеличенный просмотр`} /><div><span>{expandedProduct.mark} / {expandedProduct.category === 'tshirts' ? tshirtCount : '04'}</span><strong>{expandedProduct.name}</strong></div></div></div>}
+      {expandedProduct && <div className={`image-modal ${paramsProduct ? 'product-preview-modal' : ''}`} role="dialog" aria-modal="true" aria-label={`Просмотр майки ${expandedProduct.name}`} onClick={() => setExpandedProduct(null)}><button className="image-modal-close" onClick={() => setExpandedProduct(null)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={expandedProduct.image} alt={`Майка ${expandedProduct.name} — увеличенный просмотр`} /><div><span>{expandedProduct.mark} / {String(activeCollectionCount).padStart(2, '0')}</span><strong>{expandedProduct.name}</strong></div></div></div>}
       {paramsProduct && (
         <div className="image-modal params-modal" role="dialog" aria-modal="true" aria-label={`Выбор параметров: ${paramsProduct.name}`} onClick={() => setParamsProduct(null)}>
           <div className="params-modal-content" onClick={(event) => event.stopPropagation()}>
@@ -320,7 +336,7 @@ function App() {
             </div>
             <div className="params-modal-side">
               <div className="params-modal-info">
-                <span className="params-modal-mark">{paramsProduct.mark} / {paramsProduct.category === 'tshirts' ? tshirtCount : '04'}</span>
+                <span className="params-modal-mark">{paramsProduct.mark} / {String(activeCollectionCount).padStart(2, '0')}</span>
                 <h3>{paramsProduct.name}</h3>
                 <p>{paramsProduct.type}</p>
                 <p className="params-modal-material">{paramsProduct.material}</p>
