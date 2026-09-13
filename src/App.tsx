@@ -16,34 +16,27 @@ const tshirtNames: string[] = [
   'ПАРТРЭТ ВЕРАЦЕННІКА', 'ПАРТРЭТ ЛАСТАЎКІ',
 ];
 
-const tshirtCollections: Record<number, Collection> = {};
-tshirtNames.forEach((_, i) => {
-  if (i < 16) tshirtCollections[i + 1] = 'ЖЫВЕЛЫ';
-  else tshirtCollections[i + 1] = 'ПРЫРОДА';
-});
-
 const products = tshirtNames.map((name, i) => {
   const num = i + 1;
   const mark = String(num).padStart(2, '0');
-  const collection = tshirtCollections[num];
-  const folder = collection === 'ЖЫВЕЛЫ' ? 'animal' : collection === 'ПРЫРОДА' ? 'nature' : 'architecture';
   return {
     name,
-    type: '195г/м²',
+    type: '190г/м²',
+    material: '100% полугребенной хлопок Ringspun',
     price: 54,
     tone: 'bone',
     mark,
-    image: `/images/tshirts/${folder}/tshirt-${mark}.png`,
+    image: `/images/tshirts/animal/tshirt-${mark}.png`,
     category: 'tshirts' as const,
-    collection,
+    collection: 'ЖЫВЕЛЫ' as Collection,
   };
 });
 
 const hoodies = [
-  { name: 'СВОБОДНЫЙ ХОД', type: 'хлопок', price: 119, tone: 'bone', mark: '01', image: '/images/hoodie/hoodie-01.png', category: 'hoodies' as const },
-  { name: 'ТВОЕ НАПРАВЛЕНИЕ', type: 'хлопок', price: 119, tone: 'bone', mark: '02', image: '/images/hoodie/hoodie-02.png', category: 'hoodies' as const },
-  { name: 'МЕСТО СИЛЫ', type: 'хлопок', price: 119, tone: 'bone', mark: '03', image: '/images/hoodie/hoodie-03.png', category: 'hoodies' as const },
-  { name: 'ЦИФРОВОЙ СЛЕД', type: 'хлопок', price: 119, tone: 'bone', mark: '04', image: '/images/hoodie/hoodie-04.png', category: 'hoodies' as const },
+  { name: 'СВОБОДНЫЙ ХОД', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '01', image: '/images/hoodie/hoodie-01.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
+  { name: 'ТВОЕ НАПРАВЛЕНИЕ', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '02', image: '/images/hoodie/hoodie-02.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
+  { name: 'МЕСТО СИЛЫ', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '03', image: '/images/hoodie/hoodie-03.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
+  { name: 'ЦИФРОВОЙ СЛЕД', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '04', image: '/images/hoodie/hoodie-04.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
 ];
 
 const sizes = ['S', 'M', 'L'] as const;
@@ -91,11 +84,11 @@ function App() {
 
   const activeProducts = activeTab === 'tshirts'
     ? products.filter((p) => p.collection === activeCollection)
-    : hoodies;
+    : hoodies.filter((p) => p.collection === activeCollection);
 
   const tshirtCount = products.length;
   const sizeGuideImage = activeTab === 'tshirts' ? '/images/tshirts/tshirt-size-chart.png' : '/images/hoodie/hoodies-size-table.png';
-  const sizeHints = activeTab === 'tshirts' ? ['44–46', '48', '50'] : ['46', '48', '50'];
+  const sizeHints = activeTab === 'tshirts' ? ['44–46', '48', '50'] : ['50', '52–54', '54–56'];
 
   const updateField = (field: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -270,13 +263,11 @@ function App() {
           <button className={activeTab === 'tshirts' ? 'active' : ''} onClick={() => setActiveTab('tshirts')}>ФУТБОЛКИ</button>
           <button className={activeTab === 'hoodies' ? 'active' : ''} onClick={() => setActiveTab('hoodies')}>ТОЛСТОВКИ</button>
         </div>
-        {activeTab === 'tshirts' && (
-          <div className="collection-tabs">
-            {collections.map((col) => (
-              <button key={col} className={activeCollection === col ? 'active' : ''} onClick={() => setActiveCollection(col)}>{col}</button>
-            ))}
-          </div>
-        )}
+        <div className="collection-tabs">
+          {collections.map((col) => (
+            <button key={col} className={activeCollection === col ? 'active' : ''} onClick={() => setActiveCollection(col)}>{col}</button>
+          ))}
+        </div>
         <div className="product-grid">
           {activeProducts.map((product) => {
             return <article className="product-card" key={`${product.category}-${product.name}`}>
@@ -332,6 +323,7 @@ function App() {
                 <span className="params-modal-mark">{paramsProduct.mark} / {paramsProduct.category === 'tshirts' ? tshirtCount : '04'}</span>
                 <h3>{paramsProduct.name}</h3>
                 <p>{paramsProduct.type}</p>
+                <p className="params-modal-material">{paramsProduct.material}</p>
                 <strong>{formatPrice(paramsProduct.price)}</strong>
               </div>
               <div className="params-modal-options">
