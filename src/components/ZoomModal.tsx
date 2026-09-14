@@ -18,9 +18,31 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
   const pinchStart = useRef<{ distance: number; zoom: number } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
 
   const clampZoom = (z: number) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, z));
+
+  const getMaxOffset = useCallback(() => {
+    const vp = viewportRef.current;
+    const img = imageRef.current;
+    if (!vp || !img) return { x: 0, y: 0 };
+    const vpW = vp.clientWidth;
+    const vpH = vp.clientHeight;
+    const imgW = img.naturalWidth * (img.clientWidth / img.naturalWidth) * zoom;
+    const imgH = img.naturalHeight * (img.clientHeight / img.naturalHeight) * zoom;
+    const maxX = Math.max(0, (imgW - vpW) / 2);
+    const maxY = Math.max(0, (imgH - vpH) / 2);
+    return { x: maxX, y: maxY };
+  }, [zoom]);
+
+  const clampOffset = useCallback((x: number, y: number) => {
+    const max = getMaxOffset();
+    return {
+      x: Math.max(-max.x, Math.min(max.x, x)),
+      y: Math.max(-max.y, Math.min(max.y, y)),
+    };
+  }, [getMaxOffset]);
 
   const resetZoom = useCallback(() => {
     setZoom(1);
@@ -30,7 +52,11 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = -e.deltaY * 0.0015;
-    setZoom((z) => clampZoom(z + delta * z));
+    setZoom((z) => {
+      const next = clampZoom(z + delta * z);
+      if (next === 1) setOffset({ x: 0, y: 0 });
+      return next;
+    });
   }, []);
 
   const handleZoomIn = useCallback(() => {
@@ -47,17 +73,18 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (zoom <= 1) return;
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, offsetX: offset.x, offsetY: offset.y };
   }, [zoom, offset]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging) return;
-    setOffset({
-      x: dragStart.current.offsetX + (e.clientX - dragStart.current.x),
-      y: dragStart.current.offsetY + (e.clientY - dragStart.current.y),
-    });
-  }, [isDragging]);
+    const rawX = dragStart.current.offsetX + (e.clientX - dragStart.current.x);
+    const rawY = dragStart.current.offsetY + (e.clientY - dragStart.current.y);
+    setOffset(clampOffset(rawX, rawY));
+  }, [isDragging, clampOffset]);
 
   const handleMouseUp = useCallback(() => setIsDragging(false), []);
 
@@ -80,15 +107,16 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const newDistance = Math.hypot(dx, dy);
       const scale = newDistance / pinchStart.current.distance;
-      setZoom(clampZoom(pinchStart.current.zoom * scale));
+      const next = clampZoom(pinchStart.current.zoom * scale);
+      setZoom(next);
+      if (next === 1) setOffset({ x: 0, y: 0 });
     } else if (e.touches.length === 1 && isDragging) {
       e.preventDefault();
-      setOffset({
-        x: dragStart.current.offsetX + (e.touches[0].clientX - dragStart.current.x),
-        y: dragStart.current.offsetY + (e.touches[0].clientY - dragStart.current.y),
-      });
+      const rawX = dragStart.current.offsetX + (e.touches[0].clientX - dragStart.current.x);
+      const rawY = dragStart.current.offsetY + (e.touches[0].clientY - dragStart.current.y);
+      setOffset(clampOffset(rawX, rawY));
     }
-  }, [isDragging]);
+  }, [isDragging, clampOffset]);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -105,6 +133,10 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, handleZoomIn, handleZoomOut]);
 
+  useEffect(() => {
+    if (zoom === 1) setOffset({ x: 0, y: 0 });
+  }, [zoom]);
+
   return (
     <div
       className="zoom-modal-overlay"
@@ -112,7 +144,6 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
       aria-modal="true"
       aria-label={imageAlt}
       onClick={onClose}
-      ref={containerRef}
     >
       <button className="zoom-modal-close" onClick={onClose} aria-label="Закрыть просмотр">
         <X size={24} />
@@ -120,13 +151,16 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
 
       <div
         className="zoom-modal-viewport"
+        ref={viewportRef}
         onClick={(e) => e.stopPropagation()}
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
         <img
+          ref={imageRef}
           src={imageSrc}
           alt={imageAlt}
           className="zoom-modal-image"
@@ -140,11 +174,11 @@ export default function ZoomModal({ imageSrc, imageAlt, title, subtitle, onClose
 
       <div className="zoom-modal-controls" onClick={(e) => e.stopPropagation()}>
         <button onClick={handleZoomOut} disabled={zoom <= MIN_ZOOM} aria-label="Уменьшить">
-          <Minus size={20} />
+          <Minus size={18} />
         </button>
         <span>{Math.round(zoom * 100)}%</span>
         <button onClick={handleZoomIn} disabled={zoom >= MAX_ZOOM} aria-label="Увеличить">
-          <Plus size={20} />
+          <Plus size={18} />
         </button>
         {zoom !== 1 && (
           <button onClick={resetZoom} className="zoom-reset" aria-label="Сбросить масштаб">
