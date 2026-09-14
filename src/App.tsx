@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { ArrowDown, ArrowRight, Check, Minus, Plus, Menu, Music2, Send, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, ChevronLeft, ChevronRight, Minus, Plus, Menu, Music2, Send, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { legalInfo } from '@/config/legal';
 
@@ -19,25 +19,32 @@ const birdNames: string[] = [
   'ПАРТРЭТ ВЕРАЦЕННІКА', 'ПАРТРЭТ ЛАСТАЎКІ',
 ];
 
-const createTshirtProducts = (names: string[], collection: Collection, imageDir: string) =>
+const PRICE_LARGE = 54;
+const PRICE_SMALL = 45;
+
+type PrintType = 'large' | 'small';
+
+const createTshirtProducts = (names: string[], collection: Collection, imageDir: string, smallDir: string) =>
   names.map((name, i) => {
     const mark = String(i + 1).padStart(2, '0');
     return {
       name,
       type: '190г/м²',
       material: '100% полугребенной хлопок Ringspun',
-      price: 54,
+      price: PRICE_LARGE,
+      priceSmall: PRICE_SMALL,
       tone: 'bone',
       mark,
-      image: `/images/tshirts/animals/${imageDir}/tshirt-${mark}.png`,
+      image: `/images/tshirts/animals/${imageDir}/tshirt-${mark}-l.png`,
+      imageSmall: `/images/tshirts/animals/${smallDir}/tshirt-${mark}-s.png`,
       category: 'tshirts' as const,
       collection,
     };
   });
 
 const products = [
-  ...createTshirtProducts(mammalNames, 'ЖЫВЕЛЫ', 'mammals'),
-  ...createTshirtProducts(birdNames, 'ПТУШКІ', 'birds'),
+  ...createTshirtProducts(mammalNames, 'ЖЫВЕЛЫ', 'mammals', 'small-mammals'),
+  ...createTshirtProducts(birdNames, 'ПТУШКІ', 'birds', 'small-birds'),
 ];
 
 const hoodies = [
@@ -50,7 +57,7 @@ const hoodies = [
 const sizes = ['S', 'M', 'L'] as const;
 type Product = (typeof products)[number] | (typeof hoodies)[number];
 type Size = (typeof sizes)[number];
-type CartItem = { id: string; product: Product; size: Size; quantity: number };
+type CartItem = { id: string; product: Product; size: Size; quantity: number; printType: PrintType; unitPrice: number };
 
 type FormState = {
   fullName: string;
@@ -77,6 +84,7 @@ function App() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [cardSizes, setCardSizes] = useState<Record<string, Size>>({});
   const [cardQuantities, setCardQuantities] = useState<Record<string, number>>({});
+  const [cardPrintTypes, setCardPrintTypes] = useState<Record<string, PrintType>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isSending, setIsSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -106,6 +114,15 @@ function App() {
 
   const getCardSize = (product: Product): Size => cardSizes[product.name] ?? 'M';
   const getCardQuantity = (product: Product): number => cardQuantities[product.name] ?? 1;
+  const getCardPrintType = (product: Product): PrintType => cardPrintTypes[product.name] ?? 'large';
+  const getCardPrice = (product: Product): number => {
+    if (product.category !== 'tshirts') return product.price;
+    return getCardPrintType(product) === 'large' ? product.price : product.priceSmall;
+  };
+  const getCardImage = (product: Product): string => {
+    if (product.category !== 'tshirts') return product.image;
+    return getCardPrintType(product) === 'large' ? product.image : product.imageSmall;
+  };
 
   const changeCardQuantity = (product: Product, amount: number) => {
     const nextQuantity = Math.max(1, getCardQuantity(product) + amount);
@@ -115,14 +132,16 @@ function App() {
   const addToCart = (product: Product) => {
     const size = getCardSize(product);
     const quantity = getCardQuantity(product);
-    const id = `${product.name}-${size}`;
+    const printType = getCardPrintType(product);
+    const unitPrice = getCardPrice(product);
+    const id = `${product.name}-${size}-${printType}`;
 
     setCart((current) => {
       const existing = current.find((item) => item.id === id);
       if (existing) {
         return current.map((item) => item.id === id ? { ...item, quantity: item.quantity + quantity } : item);
       }
-      return [...current, { id, product, size, quantity }];
+      return [...current, { id, product, size, quantity, printType, unitPrice }];
     });
     setAddedProduct(product.name);
     window.setTimeout(() => setAddedProduct(null), 1800);
@@ -137,7 +156,7 @@ function App() {
   };
 
   const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const productsTotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const productsTotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const deliveryCost = totalQuantity === 1 ? 5 : 0;
   const orderTotal = productsTotal + deliveryCost;
 
@@ -152,8 +171,12 @@ function App() {
 
     setIsSending(true);
     const telegram = form.telegram.trim() || 'Не заполнялось';
-    const productSummary = cart.map((item) => `${item.product.name} — ${item.size}, ${item.quantity} шт.`).join('\n');
+    const productSummary = cart.map((item) => {
+      const printLabel = item.printType === 'large' ? 'крупный принт' : 'мелкий принт';
+      return `${item.product.name} — ${item.size}, ${printLabel}, ${item.quantity} шт., ${formatPrice(item.unitPrice)}/шт.`;
+    }).join('\n');
     const sizeSummary = cart.map((item) => `${item.product.name}: ${item.size}`).join('; ');
+
 
     if (supabase) {
       const { error: insertError } = await supabase.from('mezha_orders').insert({
@@ -316,7 +339,7 @@ function App() {
             <div className="form-row"><label><span>ТЕЛЕФОН <b>*</b></span><input required type="tel" value={form.phone} onChange={(event) => updateField('phone', event.target.value)} placeholder="+375 (__) ___-__-__" /></label><label><span>ЭЛЕКТРОННАЯ ПОЧТА <b>*</b></span><input required type="email" value={form.email} onChange={(event) => updateField('email', event.target.value)} placeholder="example@gmail.com" /></label></div><label><span>TELEGRAM</span><input value={form.telegram} onChange={(event) => updateField('telegram', event.target.value)} placeholder="Необязательно" /></label>
             <label><span>ОТДЕЛЕНИЕ ПОЧТЫ <b>*</b></span><input required value={form.pickupPoint} onChange={(event) => updateField('pickupPoint', event.target.value)} placeholder="Город, номер или адрес отделения" /></label>
             <fieldset><legend>СПОСОБ ДОСТАВКИ <b>*</b></legend><div className="shipping-options">{['Европочта', 'Белпочта'].map((shippingMethod) => <label className={form.shippingMethod === shippingMethod ? 'active' : ''} key={shippingMethod}><input type="radio" name="shippingMethod" value={shippingMethod} checked={form.shippingMethod === shippingMethod} onChange={(event) => updateField('shippingMethod', event.target.value)} />{shippingMethod}</label>)}</div></fieldset>
-            <div className="cart-panel"><div className="cart-heading"><h3>Корзина</h3><span>{totalQuantity} шт.</span></div>{cart.length === 0 ? <p className="cart-empty">Добавьте вещи из каталога, чтобы оформить заказ.</p> : <div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><div><strong>{item.product.name}</strong><span>Размер {item.size} · {formatPrice(item.product.price)} / шт.</span></div><div className="cart-item-actions"><div className="quantity-control"><button type="button" onClick={() => updateCartQuantity(item.id, -1)} aria-label="Уменьшить количество"><Minus size={13} /></button><strong>{item.quantity}</strong><button type="button" onClick={() => updateCartQuantity(item.id, 1)} aria-label="Увеличить количество"><Plus size={13} /></button></div><button className="remove-item" type="button" onClick={() => removeFromCart(item.id)}>Убрать</button></div></div>)}</div>}
+            <div className="cart-panel"><div className="cart-heading"><h3>Корзина</h3><span>{totalQuantity} шт.</span></div>{cart.length === 0 ? <p className="cart-empty">Добавьте вещи из каталога, чтобы оформить заказ.</p> : <div className="cart-items">{cart.map((item) => <div className="cart-item" key={item.id}><div><strong>{item.product.name}</strong><span>Размер {item.size}{item.printType === 'small' ? ' · мелкий принт' : ' · крупный принт'} · {formatPrice(item.unitPrice)} / шт.</span></div><div className="cart-item-actions"><div className="quantity-control"><button type="button" onClick={() => updateCartQuantity(item.id, -1)} aria-label="Уменьшить количество"><Minus size={13} /></button><strong>{item.quantity}</strong><button type="button" onClick={() => updateCartQuantity(item.id, 1)} aria-label="Увеличить количество"><Plus size={13} /></button></div><button className="remove-item" type="button" onClick={() => removeFromCart(item.id)}>Убрать</button></div></div>)}</div>}
               <div className="cart-summary"><div><span>ТОВАРЫ</span><strong>{formatPrice(productsTotal)}</strong></div><div className={deliveryCost === 0 && totalQuantity > 0 ? 'delivery-free' : ''}><span>ДОСТАВКА {deliveryCost === 0 && totalQuantity > 0 ? '(от 2-х вещей)' : ''}</span><strong className={deliveryCost === 0 && totalQuantity > 0 ? 'strikethrough' : ''}>{formatPrice(5)}</strong>{deliveryCost === 0 && totalQuantity > 0 && <em>БЕСПЛАТНО</em>}</div><div className="cart-total"><span>ИТОГО</span><strong>{formatPrice(orderTotal)}</strong></div></div>
             </div>
             {error && <p className="form-error">{error}</p>}
@@ -332,7 +355,16 @@ function App() {
           <div className="params-modal-content" onClick={(event) => event.stopPropagation()}>
             <button className="params-modal-close" onClick={() => setParamsProduct(null)} aria-label="Закрыть окно выбора параметров"><X size={21} /></button>
             <div className="params-modal-photo" onClick={() => setExpandedProduct(paramsProduct)} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedProduct(paramsProduct); } }} aria-label={`Рассмотреть майку ${paramsProduct.name}`}>
-              <img src={paramsProduct.image} alt={`Майка ${paramsProduct.name}`} />
+              <img src={getCardImage(paramsProduct)} alt={`Майка ${paramsProduct.name}`} />
+              {paramsProduct.category === 'tshirts' && (
+                <div className="print-toggle">
+                  <button type="button" className={getCardPrintType(paramsProduct) === 'large' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'large' })); }} aria-label="Крупный принт">L</button>
+                  <button type="button" className={getCardPrintType(paramsProduct) === 'small' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'small' })); }} aria-label="Мелкий принт">S</button>
+                </div>
+              )}
+              {paramsProduct.category === 'tshirts' && (
+                <div className="print-label">{getCardPrintType(paramsProduct) === 'large' ? 'КРУПНЫЙ ПРИНТ' : 'МЕЛКИЙ ПРИНТ'}</div>
+              )}
             </div>
             <div className="params-modal-side">
               <div className="params-modal-info">
@@ -340,7 +372,7 @@ function App() {
                 <h3>{paramsProduct.name}</h3>
                 <p>{paramsProduct.type}</p>
                 <p className="params-modal-material">{paramsProduct.material}</p>
-                <strong>{formatPrice(paramsProduct.price)}</strong>
+                <strong>{formatPrice(getCardPrice(paramsProduct))}</strong>
               </div>
               <div className="params-modal-options">
                 <div className="product-size-picker">
