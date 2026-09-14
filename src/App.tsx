@@ -2,6 +2,7 @@ import { FormEvent, useState } from 'react';
 import { ArrowDown, ArrowRight, Check, ChevronLeft, ChevronRight, Minus, Plus, Menu, Music2, Send, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { legalInfo } from '@/config/legal';
+import ZoomModal from '@/components/ZoomModal';
 
 type Collection = 'ЖЫВЕЛЫ' | 'ПТУШКІ' | 'ПРЫРОДА' | 'АРХІТЭКТУРА';
 
@@ -54,9 +55,10 @@ const hoodies = [
   { name: 'ЦИФРОВОЙ СЛЕД', type: 'хлопок', material: '100% полугребенной хлопок Ringspun', price: 119, tone: 'bone', mark: '04', image: '/images/hoodie/hoodie-04.png', category: 'hoodies' as const, collection: 'ЖЫВЕЛЫ' as Collection },
 ];
 
-const sizes = ['S', 'M', 'L'] as const;
+const tshirtSizes = ['XS', 'S', 'M', 'L'] as const;
+const hoodieSizes = ['XS', 'S', 'M', 'L'] as const;
+type Size = (typeof tshirtSizes)[number] | (typeof hoodieSizes)[number];
 type Product = (typeof products)[number] | (typeof hoodies)[number];
-type Size = (typeof sizes)[number];
 type CartItem = { id: string; product: Product; size: Size; quantity: number; printType: PrintType; unitPrice: number };
 
 type FormState = {
@@ -106,13 +108,18 @@ function App() {
     ? products.filter((p) => p.collection === activeCollection).length
     : hoodies.filter((p) => p.collection === activeCollection).length;
   const sizeGuideImage = activeTab === 'tshirts' ? '/images/tshirts/tshirt-size-chart.png' : '/images/hoodie/hoodies-size-table.png';
-  const sizeHints = activeTab === 'tshirts' ? ['44–46', '48', '50'] : ['50', '52–54', '54–56'];
+  const sizeHints = activeTab === 'tshirts' ? ['48', '50', '52–54', '56'] : ['44–46', '46–48', '48–50', '52–54'];
+  const activeSizes = activeTab === 'tshirts' ? tshirtSizes : hoodieSizes;
 
   const updateField = (field: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
   const getCardSize = (product: Product): Size => cardSizes[product.name] ?? 'M';
+
+  const toggleCardPrintType = (product: Product) => {
+    setCardPrintTypes((current) => ({ ...current, [product.name]: getCardPrintType(product) === 'large' ? 'small' : 'large' }));
+  };
   const getCardQuantity = (product: Product): number => cardQuantities[product.name] ?? 1;
   const getCardPrintType = (product: Product): PrintType => cardPrintTypes[product.name] ?? 'large';
   const getCardPrice = (product: Product): number => {
@@ -306,10 +313,20 @@ function App() {
           {activeProducts.map((product) => {
             return <article className="product-card" key={`${product.category}-${product.name}`}>
               <div className="product-image" onClick={() => setExpandedProduct(product)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedProduct(product); } }} role="button" tabIndex={0} aria-label={`Рассмотреть ${activeTab === 'tshirts' ? 'майку' : 'толстовку'} ${product.name}`}>
-                <img className="product-photo" src={product.image} alt={`${activeTab === 'tshirts' ? 'Майка' : 'Толстовка'} ${product.name}`} />
+                <img className="product-photo" src={getCardImage(product)} alt={`${activeTab === 'tshirts' ? 'Майка' : 'Толстовка'} ${product.name}`} />
                 <span className="product-number">{product.mark} / {String(activeCollectionCount).padStart(2, '0')}</span><span className="product-stamp">МЕЖА<br />MADE IN BY</span><span className="zoom-hint">нажми, чтобы рассмотреть</span>
+                {product.category === 'tshirts' && (
+                  <>
+                    <button className="card-nav-arrow card-nav-prev" type="button" onClick={(e) => { e.stopPropagation(); toggleCardPrintType(product); }} aria-label="Предыдущее фото"><ChevronLeft size={18} /></button>
+                    <button className="card-nav-arrow card-nav-next" type="button" onClick={(e) => { e.stopPropagation(); toggleCardPrintType(product); }} aria-label="Следующее фото"><ChevronRight size={18} /></button>
+                    <div className="card-print-toggle">
+                      <button type="button" className={getCardPrintType(product) === 'large' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [product.name]: 'large' })); }} aria-label="Крупный принт">L</button>
+                      <button type="button" className={getCardPrintType(product) === 'small' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [product.name]: 'small' })); }} aria-label="Мелкий принт">S</button>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="product-info"><div><h3>{product.name}</h3><p>{product.type}</p></div><strong>{formatPrice(product.price)}</strong></div>
+              <div className="product-info"><div><h3>{product.name}</h3><p>{product.type}</p></div><strong>{formatPrice(getCardPrice(product))}</strong></div>
               <button className="product-choose" onClick={() => setParamsProduct(product)}>Выбрать параметры <ArrowRight size={16} /></button>
             </article>;
           })}
@@ -325,7 +342,7 @@ function App() {
 
       <section className="size-guide container" id="sizes">
         <div className="size-guide-heading"><div className="section-label"><span>03</span><span>Размеры · {activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}</span></div><h2>Найди<br /><em>свой размер.</em></h2><p>Сними мерки по любимой вещи и сравни с таблицей. Для оверсайз-посадки выбирай размер по ширине изделия под проймой.</p></div>
-        <div className="size-guide-card"><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА`} onClick={() => setSizeGuideOpen(true)} /><div className="size-guide-note"><span>РАЗМЕРЫ</span><strong>S — {sizeHints[0]}<br />M — {sizeHints[1]}<br />L — {sizeHints[2]}</strong><p>Измеряй вещь на ровной поверхности.</p></div></div>
+        <div className="size-guide-card"><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА`} onClick={() => setSizeGuideOpen(true)} /><div className="size-guide-note"><span>РАЗМЕРЫ</span><strong>XS — {sizeHints[0]}<br />S — {sizeHints[1]}<br />M — {sizeHints[2]}<br />L — {sizeHints[3]}</strong><p>Измеряй вещь на ровной поверхности.</p></div></div>
       </section>
 
       <section className="manifesto container"><div className="manifesto-line" /><p>НЕ ИЩИ<br /><span>СВОЁ МЕСТО.</span><br />СОЗДАЙ ЕГО.</p><span className="manifesto-mark">М / 2026</span></section>
@@ -348,8 +365,8 @@ function App() {
         </div>
       </section>
 
-      {sizeGuideOpen && <div className="image-modal" role="dialog" aria-modal="true" aria-label="Просмотр таблицы размеров" onClick={() => setSizeGuideOpen(false)}><button className="image-modal-close" onClick={() => setSizeGuideOpen(false)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={sizeGuideImage} alt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА — увеличенный просмотр`} /><div><strong>Таблица размеров · {activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}</strong></div></div></div>}
-      {expandedProduct && <div className={`image-modal ${paramsProduct ? 'product-preview-modal' : ''}`} role="dialog" aria-modal="true" aria-label={`Просмотр майки ${expandedProduct.name}`} onClick={() => setExpandedProduct(null)}><button className="image-modal-close" onClick={() => setExpandedProduct(null)} aria-label="Закрыть просмотр"><X size={24} /></button><div className="image-modal-content" onClick={(event) => event.stopPropagation()}><img src={expandedProduct.image} alt={`Майка ${expandedProduct.name} — увеличенный просмотр`} /><div><span>{expandedProduct.mark} / {String(activeCollectionCount).padStart(2, '0')}</span><strong>{expandedProduct.name}</strong></div></div></div>}
+      {sizeGuideOpen && <ZoomModal imageSrc={sizeGuideImage} imageAlt={`Таблица размеров ${activeTab === 'tshirts' ? 'маек' : 'толстовок'} МЕЖА — увеличенный просмотр`} title={`Таблица размеров · ${activeTab === 'tshirts' ? 'Футболки' : 'Толстовки'}`} onClose={() => setSizeGuideOpen(false)} />}
+      {expandedProduct && <ZoomModal imageSrc={getCardImage(expandedProduct)} imageAlt={`${expandedProduct.name} — увеличенный просмотр`} subtitle={`${expandedProduct.mark} / ${String(activeCollectionCount).padStart(2, '0')}`} title={expandedProduct.name} onClose={() => setExpandedProduct(null)} />}
       {paramsProduct && (
         <div className="image-modal params-modal" role="dialog" aria-modal="true" aria-label={`Выбор параметров: ${paramsProduct.name}`} onClick={() => setParamsProduct(null)}>
           <div className="params-modal-content" onClick={(event) => event.stopPropagation()}>
@@ -357,13 +374,15 @@ function App() {
             <div className="params-modal-photo" onClick={() => setExpandedProduct(paramsProduct)} role="button" tabIndex={0} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setExpandedProduct(paramsProduct); } }} aria-label={`Рассмотреть майку ${paramsProduct.name}`}>
               <img src={getCardImage(paramsProduct)} alt={`Майка ${paramsProduct.name}`} />
               {paramsProduct.category === 'tshirts' && (
-                <div className="print-toggle">
-                  <button type="button" className={getCardPrintType(paramsProduct) === 'large' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'large' })); }} aria-label="Крупный принт">L</button>
-                  <button type="button" className={getCardPrintType(paramsProduct) === 'small' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'small' })); }} aria-label="Мелкий принт">S</button>
-                </div>
-              )}
-              {paramsProduct.category === 'tshirts' && (
-                <div className="print-label">{getCardPrintType(paramsProduct) === 'large' ? 'КРУПНЫЙ ПРИНТ' : 'МЕЛКИЙ ПРИНТ'}</div>
+                <>
+                  <button className="card-nav-arrow card-nav-prev" type="button" onClick={(e) => { e.stopPropagation(); toggleCardPrintType(paramsProduct); }} aria-label="Предыдущее фото"><ChevronLeft size={18} /></button>
+                  <button className="card-nav-arrow card-nav-next" type="button" onClick={(e) => { e.stopPropagation(); toggleCardPrintType(paramsProduct); }} aria-label="Следующее фото"><ChevronRight size={18} /></button>
+                  <div className="print-toggle">
+                    <button type="button" className={getCardPrintType(paramsProduct) === 'large' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'large' })); }} aria-label="Крупный принт">L</button>
+                    <button type="button" className={getCardPrintType(paramsProduct) === 'small' ? 'active' : ''} onClick={(e) => { e.stopPropagation(); setCardPrintTypes((c) => ({ ...c, [paramsProduct.name]: 'small' })); }} aria-label="Мелкий принт">S</button>
+                  </div>
+                  <div className="print-label">{getCardPrintType(paramsProduct) === 'large' ? 'КРУПНЫЙ ПРИНТ' : 'МЕЛКИЙ ПРИНТ'}</div>
+                </>
               )}
             </div>
             <div className="params-modal-side">
@@ -378,11 +397,11 @@ function App() {
                 <div className="product-size-picker">
                   <span>РАЗМЕР</span>
                   <div className="size-choice-row">
-                    {sizes.map((size) => (
+                    {activeSizes.map((size) => (
                       <button className={getCardSize(paramsProduct) === size ? 'active' : ''} key={size} type="button" onClick={() => setCardSizes((current) => ({ ...current, [paramsProduct.name]: size }))}>{size}</button>
                     ))}
                   </div>
-                  <div className="size-hints">{sizeHints.map((hint) => <span key={hint}>{hint}</span>)}</div>
+                  <div className="size-hints">{activeSizes.map((size, i) => <span key={size}>{sizeHints[i]}</span>)}</div>
                 </div>
                 <div className="product-quantity">
                   <span>КОЛ-ВО</span>
